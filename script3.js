@@ -46,13 +46,7 @@ function apiSearch(event){
         </div>`;
      });
     movie.innerHTML = inner;  
-    let dataInfo='';
-    const media = movie.querySelectorAll('.img[data-id]');
-    media.forEach(function(elem){
-        elem.style.cursor='pointer';
-        elem.addEventMedia();
-        console.log(elem);
-    });
+    addEventMedia();
     })
     .catch(function(error){
         movie.innerHTML='Упс, что-то пошло не так';
@@ -76,13 +70,13 @@ function addEventMedia(){
 
 function showFullInfo(){
     let url ='';
+    
     if (this.dataset.type==='movie'){
         url='https://api.themoviedb.org/3/movie/'+this.dataset.id+'?api_key=4e61d32c7f8095da04f6550d8cc3dd94&language=ru';
     } else if (this.dataset.type='tv'){
         url='https://api.themoviedb.org/3/tv/'+this.dataset.id+'?api_key=4e61d32c7f8095da04f6550d8cc3dd94&language=ru';
     } else{
         movie.innerHTML=`<h2 class="col-12 text-center text-danger">Произошла ошибка, повторите позже</h2>`;
-        return;
     }    ;
     
     fetch(url)
@@ -91,14 +85,14 @@ function showFullInfo(){
                 return Promise.reject(new Error(response.status));
             }
             return response.json();
+            
         })
-        .then(function(output){
+        .then((output)=>{
             
             let genres='';
             output.genres.forEach(function(item){
                 genres+=item.name+" ";
-            })
-           
+            });
 
             movie.innerHTML=`
             <h4 class="col-12 text-center text-info">${output.name||output.title}</h4>
@@ -114,12 +108,16 @@ function showFullInfo(){
 
                 ${(output.last_episode_to_air) ? `<p>${output.number_of_seasons} сезон ${output.last_episode_to_air.episode_number} серий вышло </p>`:''}
                 <div>Жанры: ${genres}</div>
+                <br>
+                <div class='youtube'></div>
             </div> 
-            
-            `;
+             `;
+            // console.log(this.dataset.type);
+            getVideo(this.dataset.type, this.dataset.id);
         })
         .catch(function(e){
-            movie.innerHTML="Что-то пошло не так";
+            movie.innerHTML="Что-то пошло не так при отображении деталей";
+            // console.log(this);
             console.error(e||e.status);
         });
 }
@@ -162,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 </div>`;
         });
         movie.innerHTML = inner;  
-        let dataInfo='';
+        // let dataInfo='';
         // const media = movie.querySelectorAll('img[data-id]');
         // media.forEach(function(elem){
         //     elem.style.cursor='pointer';
@@ -175,3 +173,36 @@ document.addEventListener('DOMContentLoaded', function(){
         console.error(error);
     });
 });
+
+function getVideo(type,id){
+    
+    let youtube = movie.querySelector('.youtube');
+    fetch(`https://api.themoviedb.org/3/${type}/${id}/videos?api_key=4e61d32c7f8095da04f6550d8cc3dd94&language=ru`)
+        .then((response)=>{
+            if (response.status!==200){
+                Promise.reject(new Error(response.status));
+                return;
+            }
+            return response.json();
+            // console.log(response);
+        })
+        .then((output)=> {
+            let videoFrame=`<h5 class="text-info">Трейлеры</h5>`;
+            if (output.results.length===0){
+                videoFrame=`<p>К сожалению, видео отсутствует</p>`;
+            }
+            output.results.forEach((item)=>{
+               
+                videoFrame+='<iframe width="560" height="315" src="https://www.youtube.com/embed/'+item.key+'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+                console.log(videoFrame);
+            });
+            youtube.innerHTML = videoFrame;
+        })
+        .catch((reason)=>{
+            youtube.innerHTML='Видео отсутствует';
+            console.error(reason||reason.status);
+
+        });
+    
+
+};
